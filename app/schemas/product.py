@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -7,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 class ProductBase(BaseModel):
     name: str
     subtitle: str
-    price: Decimal
+    price: str
     category: str
     description: str
     details: str | None = None
@@ -15,6 +14,9 @@ class ProductBase(BaseModel):
     badge: str | None = None
     featured: bool = False
     collection_id: int | None = None
+    material: str | None = None
+    dimensions: str | None = None
+    stock: int = 0
 
 
 class ProductCreate(ProductBase):
@@ -24,7 +26,7 @@ class ProductCreate(ProductBase):
 class ProductUpdate(BaseModel):
     name: str | None = None
     subtitle: str | None = None
-    price: Decimal | None = None
+    price: str | None = None
     category: str | None = None
     description: str | None = None
     details: str | None = None
@@ -32,10 +34,14 @@ class ProductUpdate(BaseModel):
     badge: str | None = None
     featured: bool | None = None
     collection_id: int | None = None
+    material: str | None = None
+    dimensions: str | None = None
+    stock: int | None = None
 
 
 class ProductRead(ProductBase):
     id: int
+    is_admin_uploaded: bool = False
     created_at: datetime
     updated_at: datetime
 

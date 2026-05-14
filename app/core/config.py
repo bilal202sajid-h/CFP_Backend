@@ -8,6 +8,11 @@ class Settings(BaseSettings):
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 120
+    cloudinary_url: str | None = None
+    cloudinary_cloud_name: str | None = None
+    cloudinary_api_key: str | None = None
+    cloudinary_api_secret: str | None = None
+    cloudinary_upload_folder: str = "chiniot-furniture/products"
 
 
 settings = Settings()

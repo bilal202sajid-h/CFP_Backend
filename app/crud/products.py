@@ -5,7 +5,7 @@ from .. import models, schemas
 
 
 def list_products(db: Session, category: str | None = None, featured: bool | None = None):
-    query = db.query(models.Product)
+    query = db.query(models.Product).filter(models.Product.is_admin_uploaded == True)
     if category:
         query = query.filter(models.Product.category == category)
     if featured is not None:
@@ -22,6 +22,8 @@ def get_product(db: Session, product_id: int):
 
 def create_product(db: Session, payload: schemas.ProductCreate):
     product = models.Product(**payload.model_dump())
+    # Mark products created via admin API as admin-uploaded so they appear in public listings
+    product.is_admin_uploaded = True
     db.add(product)
     db.commit()
     db.refresh(product)

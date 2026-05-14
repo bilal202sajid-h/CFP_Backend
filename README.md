@@ -17,6 +17,10 @@ Create a `.env` file from `.env.example` and set:
 - `JWT_SECRET_KEY` - secret used to sign admin tokens
 - `JWT_ALGORITHM` - defaults to `HS256`
 - `ACCESS_TOKEN_EXPIRE_MINUTES` - defaults to `120`
+- Cloudinary config for image storage:
+	- `CLOUDINARY_URL` (recommended), or
+	- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+	- `CLOUDINARY_UPLOAD_FOLDER` - defaults to `chiniot-furniture/products`
 
 ## Run locally
 
@@ -53,6 +57,14 @@ You also need at least one admin user in `admin_users`. Insert the first admin f
 - `POST /admin/products` - create product
 - `PATCH /admin/products/{id}` - update product
 - `DELETE /admin/products/{id}` - delete product
+- `POST /admin/uploads/product-image` - upload image to Cloudinary (admin auth required)
+- `DELETE /admin/uploads/product-image?public_id=...` - delete image from Cloudinary (admin auth required)
 - `POST /admin/collections` - create collection
 - `PATCH /admin/collections/{id}` - update collection
 - `DELETE /admin/collections/{id}` - delete collection
+
+## Product image upload flow
+
+1. Call `POST /admin/uploads/product-image` with `multipart/form-data` and a `file` field.
+2. Use the returned `image_url` as `image_url` when creating/updating products.
+3. When replacing/deleting a product image, call `DELETE /admin/uploads/product-image?public_id=<old_public_id>`.

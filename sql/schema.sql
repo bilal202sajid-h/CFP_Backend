@@ -30,14 +30,47 @@ create table if not exists products (
   badge text,
   featured boolean not null default false,
   collection_id bigint references collections(id) on delete set null,
+  material text,
+  dimensions text,
+  stock integer not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+create table if not exists categories (
+  id bigint generated always as identity primary key,
+  name text not null unique,
+  display_name text not null,
+  description text,
+  icon text,
+  sort_order bigint not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists frontend_configs (
+  id bigint generated always as identity primary key,
+  config_key text not null unique,
+  config_value jsonb not null,
+  description text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Add new columns to products table if they don't exist
+alter table products add column if not exists material text;
+alter table products add column if not exists dimensions text;
+alter table products add column if not exists stock integer not null default 0;
+alter table products add column if not exists is_admin_uploaded boolean not null default false;
+
 create index if not exists idx_products_category on products(category);
 create index if not exists idx_products_featured on products(featured);
 create index if not exists idx_products_collection_id on products(collection_id);
+create index if not exists idx_products_is_admin_uploaded on products(is_admin_uploaded);
 create index if not exists idx_collections_sort_order on collections(sort_order);
+create index if not exists idx_categories_sort_order on categories(sort_order);
+create index if not exists idx_categories_name on categories(name);
+create index if not exists idx_frontend_configs_key on frontend_configs(config_key);
 
 create or replace function set_updated_at()
 returns trigger
@@ -62,4 +95,14 @@ for each row execute function set_updated_at();
 drop trigger if exists trg_products_updated_at on products;
 create trigger trg_products_updated_at
 before update on products
+for each row execute function set_updated_at();
+
+drop trigger if exists trg_categories_updated_at on categories;
+create trigger trg_categories_updated_at
+before update on categories
+for each row execute function set_updated_at();
+
+drop trigger if exists trg_frontend_configs_updated_at on frontend_configs;
+create trigger trg_frontend_configs_updated_at
+before update on frontend_configs
 for each row execute function set_updated_at();

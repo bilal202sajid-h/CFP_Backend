@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from ... import crud, schemas
+from ...core.cloudinary_client import delete_image, upload_image
 from ...core.security import create_access_token, require_admin
 from ...db.session import get_db
 
@@ -32,6 +33,33 @@ def admin_me(admin_payload: dict = Depends(require_admin), db: Session = Depends
     if admin is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Admin not found")
     return admin
+
+
+@router.post("/admin/uploads/product-image", response_model=schemas.ImageUploadResponse)
+def admin_upload_product_image(file: UploadFile = File(...), _: dict = Depends(require_admin)):
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only image files are allowed")
+
+    try:
+        result = upload_image(file.file)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Cloudinary upload failed: {exc}") from exc
+
+    return schemas.ImageUploadResponse(**result)
+
+
+@router.delete("/admin/uploads/product-image")
+def admin_delete_product_image(public_id: str, _: dict = Depends(require_admin)):
+    try:
+        result = delete_image(public_id)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Cloudinary delete failed: {exc}") from exc
+
+    return result
 
 
 @router.post("/admin/collections", response_model=schemas.CollectionRead)
