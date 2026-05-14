@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import logging
 
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
@@ -15,10 +16,17 @@ logger = logging.getLogger(__name__)
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(password: str, password_hash: str) -> bool:
+    if password_hash.startswith("$2"):
+        try:
+            return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+        except Exception:
+            logger.exception("Native bcrypt verification failed")
+            return False
+
     try:
         return pwd_context.verify(password, password_hash)
     except Exception:
