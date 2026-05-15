@@ -11,7 +11,15 @@ _is_configured = False
 
 
 def _clean(value: str | None) -> str | None:
-    return value.strip() if isinstance(value, str) else value
+    if not isinstance(value, str):
+        return value
+
+    cleaned = value.strip()
+
+    if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] in {'"', "'"}:
+        cleaned = cleaned[1:-1].strip()
+
+    return cleaned
 
 
 def _parse_cloudinary_url(url: str) -> tuple[str, str, str]:
@@ -34,16 +42,11 @@ def _configure_cloudinary() -> None:
     cloudinary_api_key = _clean(settings.cloudinary_api_key)
     cloudinary_api_secret = _clean(settings.cloudinary_api_secret)
 
-    if cloudinary_url:
-        cloudinary_cloud_name, cloudinary_api_key, cloudinary_api_secret = _parse_cloudinary_url(cloudinary_url)
-    else:
-        required_values = [
-            cloudinary_cloud_name,
-            cloudinary_api_key,
-            cloudinary_api_secret,
-        ]
-
-        if not all(required_values):
+    # Prefer explicit values so production can override a stale CLOUDINARY_URL.
+    if not all([cloudinary_cloud_name, cloudinary_api_key, cloudinary_api_secret]):
+        if cloudinary_url:
+            cloudinary_cloud_name, cloudinary_api_key, cloudinary_api_secret = _parse_cloudinary_url(cloudinary_url)
+        else:
             raise RuntimeError("Cloudinary is not configured. Set CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET.")
 
     cloudinary.config(
