@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
+import logging
 
 from ... import crud, schemas
 from ...core.cloudinary_client import delete_image, upload_image
@@ -8,6 +9,7 @@ from ...core.security import create_access_token, require_admin
 from ...db.session import get_db
 
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -48,15 +50,25 @@ def admin_me(admin_payload: dict = Depends(require_admin), db: Session = Depends
 
 @router.post("/admin/uploads/product-image", response_model=schemas.ImageUploadResponse)
 def admin_upload_product_image(file: UploadFile = File(...), _: dict = Depends(require_admin)):
+    logger.info(
+        "admin_upload_product_image_start filename=%s content_type=%s",
+        file.filename,
+        file.content_type,
+    )
     if not file.content_type or not file.content_type.startswith("image/"):
+        logger.warning("admin_upload_product_image_invalid_file filename=%s content_type=%s", file.filename, file.content_type)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only image files are allowed")
 
     try:
         result = upload_image(file.file)
     except RuntimeError as exc:
+        logger.exception("admin_upload_product_image_runtime_error filename=%s error=%s", file.filename, exc)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
     except Exception as exc:
+        logger.exception("admin_upload_product_image_failed filename=%s error=%s", file.filename, exc)
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Cloudinary upload failed: {exc}") from exc
+
+    logger.info("admin_upload_product_image_end filename=%s public_id=%s", file.filename, result.get("public_id"))
 
     return schemas.ImageUploadResponse(**result)
 
@@ -101,14 +113,17 @@ def admin_delete_collection(collection_id: int, db: Session = Depends(get_db), _
 
 @router.post("/admin/products", response_model=schemas.ProductRead)
 def admin_create_product(payload: schemas.ProductCreate, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
+    logger.info("admin_create_product_start name=%s category=%s featured=%s", payload.name, payload.category, payload.featured)
     return crud.create_product(db, payload)
 
 
 @router.patch("/admin/products/{product_id}", response_model=schemas.ProductRead)
 def admin_update_product(product_id: int, payload: schemas.ProductUpdate, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
+    logger.info("admin_update_product_start product_id=%s fields=%s", product_id, list(payload.model_dump(exclude_unset=True).keys()))
     return crud.update_product(db, product_id, payload)
 
 
 @router.delete("/admin/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
 def admin_delete_product(product_id: int, db: Session = Depends(get_db), _: dict = Depends(require_admin)):
+    logger.info("admin_delete_product_start product_id=%s", product_id)
     crud.delete_product(db, product_id)
