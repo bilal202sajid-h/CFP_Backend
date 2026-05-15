@@ -8,6 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.responses import Response
 
 from .api.router import api_router
+from .core.config import settings
 from .db.base import Base
 from .db.session import engine
 from sqlalchemy import inspect
@@ -37,8 +38,8 @@ _configure_logging()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[origin.strip() for origin in settings.cors_allow_origins.split(",") if origin.strip()],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

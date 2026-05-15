@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     cloudinary_api_key: str | None = None
     cloudinary_api_secret: str | None = None
     cloudinary_upload_folder: str = "chiniot-furniture/products"
+    cors_allow_origins: str = "https://chiniot-furniture-point.vercel.app,http://localhost:5173,http://127.0.0.1:5173"
 
 
 settings = Settings()
