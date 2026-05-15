@@ -3,11 +3,22 @@ from sqlalchemy.orm import Session
 
 from ... import crud, schemas
 from ...core.cloudinary_client import delete_image, upload_image
+from ...core.config import settings
 from ...core.security import create_access_token, require_admin
 from ...db.session import get_db
 
 
 router = APIRouter()
+
+
+def _mask_value(value: str | None, visible: int = 4) -> str | None:
+    if not value:
+        return None
+
+    if len(value) <= visible:
+        return "*" * len(value)
+
+    return f"{value[:visible]}***{value[-visible:]}"
 
 
 @router.get("/admin")
@@ -48,6 +59,17 @@ def admin_upload_product_image(file: UploadFile = File(...), _: dict = Depends(r
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Cloudinary upload failed: {exc}") from exc
 
     return schemas.ImageUploadResponse(**result)
+
+
+@router.get("/admin/debug/cloudinary")
+def admin_debug_cloudinary(_: dict = Depends(require_admin)):
+    return {
+        "cloudinary_cloud_name": _mask_value(settings.cloudinary_cloud_name),
+        "cloudinary_api_key": _mask_value(settings.cloudinary_api_key),
+        "cloudinary_api_secret_set": bool(settings.cloudinary_api_secret),
+        "cloudinary_url_set": bool(settings.cloudinary_url),
+        "cloudinary_upload_folder": settings.cloudinary_upload_folder,
+    }
 
 
 @router.delete("/admin/uploads/product-image")
