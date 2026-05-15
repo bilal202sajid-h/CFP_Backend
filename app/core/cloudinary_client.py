@@ -1,5 +1,5 @@
-import os
 from typing import BinaryIO
+from urllib.parse import unquote, urlparse
 
 import cloudinary
 import cloudinary.uploader
@@ -10,31 +10,46 @@ from .config import settings
 _is_configured = False
 
 
+def _clean(value: str | None) -> str | None:
+    return value.strip() if isinstance(value, str) else value
+
+
+def _parse_cloudinary_url(url: str) -> tuple[str, str, str]:
+    parsed = urlparse(url)
+
+    if parsed.scheme != "cloudinary" or not parsed.hostname or not parsed.username or not parsed.password:
+        raise RuntimeError("Invalid CLOUDINARY_URL format. Expected cloudinary://<api_key>:<api_secret>@<cloud_name>")
+
+    return parsed.hostname, unquote(parsed.username), unquote(parsed.password)
+
+
 def _configure_cloudinary() -> None:
     global _is_configured
 
     if _is_configured:
         return
 
-    if settings.cloudinary_url:
-        os.environ["CLOUDINARY_URL"] = settings.cloudinary_url
-        cloudinary.config(secure=True)
-        _is_configured = True
-        return
+    cloudinary_url = _clean(settings.cloudinary_url)
+    cloudinary_cloud_name = _clean(settings.cloudinary_cloud_name)
+    cloudinary_api_key = _clean(settings.cloudinary_api_key)
+    cloudinary_api_secret = _clean(settings.cloudinary_api_secret)
 
-    required_values = [
-        settings.cloudinary_cloud_name,
-        settings.cloudinary_api_key,
-        settings.cloudinary_api_secret,
-    ]
+    if cloudinary_url:
+        cloudinary_cloud_name, cloudinary_api_key, cloudinary_api_secret = _parse_cloudinary_url(cloudinary_url)
+    else:
+        required_values = [
+            cloudinary_cloud_name,
+            cloudinary_api_key,
+            cloudinary_api_secret,
+        ]
 
-    if not all(required_values):
-        raise RuntimeError("Cloudinary is not configured. Set CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET.")
+        if not all(required_values):
+            raise RuntimeError("Cloudinary is not configured. Set CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET.")
 
     cloudinary.config(
-        cloud_name=settings.cloudinary_cloud_name,
-        api_key=settings.cloudinary_api_key,
-        api_secret=settings.cloudinary_api_secret,
+        cloud_name=cloudinary_cloud_name,
+        api_key=cloudinary_api_key,
+        api_secret=cloudinary_api_secret,
         secure=True,
     )
     _is_configured = True
