@@ -106,3 +106,22 @@ drop trigger if exists trg_frontend_configs_updated_at on frontend_configs;
 create trigger trg_frontend_configs_updated_at
 before update on frontend_configs
 for each row execute function set_updated_at();
+
+create table if not exists reviews (
+  id bigint generated always as identity primary key,
+  author_name text not null,
+  rating integer not null,
+  comment text not null,
+  city text,
+  is_approved boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_reviews_is_approved on reviews(is_approved);
+create index if not exists idx_reviews_created_at on reviews(created_at);
+
+drop trigger if exists trg_reviews_updated_at on reviews;
+create trigger trg_reviews_updated_at
+before update on reviews
+for each row execute function set_updated_at();

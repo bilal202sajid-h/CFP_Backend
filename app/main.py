@@ -10,9 +10,10 @@ from starlette.responses import Response
 from .api.router import api_router
 from .core.config import settings
 from .db.base import Base
-from .db.session import engine
+from .db.session import SessionLocal, engine
 from sqlalchemy import inspect
-from .models import admin_user, collection, product  # noqa: F401
+from . import crud
+from .models import admin_user, collection, product, review  # noqa: F401
 
 
 logger = logging.getLogger(__name__)
@@ -93,15 +94,14 @@ def on_startup() -> None:
             inspector = inspect(conn)
             tables = inspector.get_table_names()
 
-        if tables:
-            logger.info("startup_db_connected tables=%s", tables)
-        else:
-            # No tables found, create from metadata
-            Base.metadata.create_all(bind=engine)
-            with engine.connect() as conn:
-                inspector = inspect(conn)
-                created = inspector.get_table_names()
-            logger.info("startup_db_created tables=%s", created)
+        Base.metadata.create_all(bind=engine)
+        with engine.connect() as conn:
+            inspector = inspect(conn)
+            tables = inspector.get_table_names()
+        logger.info("startup_db_ready tables=%s", tables)
+
+        with SessionLocal() as db:
+            crud.seed_reviews_if_empty(db)
     except Exception as exc:
         logger.exception("startup_failed error=%s", exc)
         raise

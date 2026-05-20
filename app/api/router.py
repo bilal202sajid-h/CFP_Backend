@@ -6,6 +6,7 @@ from .endpoints.health import router as health_router
 from .endpoints.products import router as products_router
 from .endpoints.categories import router as categories_router
 from .endpoints.frontend_config import router as frontend_config_router
+from .endpoints.reviews import router as reviews_router
 
 
 api_router = APIRouter()
@@ -15,3 +16,4 @@ api_router.include_router(collections_router)
 api_router.include_router(products_router)
 api_router.include_router(categories_router)
 api_router.include_router(frontend_config_router)
+api_router.include_router(reviews_router)
