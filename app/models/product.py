@@ -10,6 +10,7 @@ class Product(Base):
     id = Column(BigInteger, primary_key=True, index=True)
     name = Column(String, nullable=False)
     subtitle = Column(String, nullable=False)
+    article_number = Column(String, nullable=False, default="", index=True)
     price = Column(String, nullable=False)
     category = Column(String, nullable=False, index=True)
     description = Column(Text, nullable=False)
