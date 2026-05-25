@@ -35,15 +35,18 @@ def _configure_logging() -> None:
         handler.setLevel(logging.INFO)
 
 
-_configure_logging()
+def _cors_allow_all() -> bool:
+    raw = settings.cors_allow_origins.strip().lower()
+    return raw in {"*", "all", "any"}
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
+def _cors_origins() -> list[str]:
+    if _cors_allow_all():
+        return ["*"]
+    return [origin.strip() for origin in settings.cors_allow_origins.split(",") if origin.strip()]
+
+
+_configure_logging()
 
 
 @app.middleware("http")
@@ -65,6 +68,28 @@ async def log_requests(request: Request, call_next) -> Response:
         response.status_code,
         duration_ms,
     )
+    return response
+
+
+# Added last so it runs first (outermost) and CORS headers apply to every response.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins(),
+    allow_origin_regex=r".*" if _cors_allow_all() else None,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def ensure_cors_headers(request: Request, call_next) -> Response:
+    response = await call_next(request)
+    if _cors_allow_all():
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers.setdefault("Access-Control-Allow-Methods", "*")
+        response.headers.setdefault("Access-Control-Allow-Headers", "*")
     return response
 
 

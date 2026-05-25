@@ -63,6 +63,7 @@ alter table products add column if not exists dimensions text;
 alter table products add column if not exists stock integer not null default 0;
 alter table products add column if not exists is_admin_uploaded boolean not null default false;
 alter table products add column if not exists article_number text not null default '';
+alter table products add column if not exists price text not null default '0';
 
 create index if not exists idx_products_category on products(category);
 create index if not exists idx_products_article_number on products(article_number);
