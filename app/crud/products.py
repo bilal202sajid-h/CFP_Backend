@@ -1,6 +1,8 @@
-from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
 import logging
+
+from fastapi import HTTPException, status
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from .. import models, schemas
 
@@ -32,13 +34,30 @@ def get_product(db: Session, product_id: int):
 
 
 def create_product(db: Session, payload: schemas.ProductCreate):
-    logger.info("create_product_start category=%s featured=%s has_image=%s", payload.category, payload.featured, bool(payload.image_url))
+    logger.info(
+        "create_product_start category=%s featured=%s article_number=%s has_image=%s",
+        payload.category,
+        payload.featured,
+        payload.article_number,
+        bool(payload.image_url),
+    )
     product = models.Product(**payload.model_dump())
-    # Mark products created via admin API as admin-uploaded so they appear in public listings
     product.is_admin_uploaded = True
     db.add(product)
-    db.commit()
-    db.refresh(product)
+    try:
+        db.commit()
+        db.refresh(product)
+    except SQLAlchemyError as exc:
+        db.rollback()
+        logger.exception("create_product_failed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=(
+                "Could not save product. The database may need the latest schema "
+                "(article_number, price columns). Redeploy the backend or run Backend/sql/schema.sql. "
+                f"Error: {exc.orig if getattr(exc, 'orig', None) else str(exc)}"
+            ),
+        ) from exc
     logger.info("create_product_end product_id=%s", product.id)
     return product
 
@@ -49,8 +68,16 @@ def update_product(db: Session, product_id: int, payload: schemas.ProductUpdate)
     data = payload.model_dump(exclude_unset=True)
     for key, value in data.items():
         setattr(product, key, value)
-    db.commit()
-    db.refresh(product)
+    try:
+        db.commit()
+        db.refresh(product)
+    except SQLAlchemyError as exc:
+        db.rollback()
+        logger.exception("update_product_failed product_id=%s", product_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Could not update product. Error: {exc.orig if getattr(exc, 'orig', None) else str(exc)}",
+        ) from exc
     logger.info("update_product_end product_id=%s", product_id)
     return product
 

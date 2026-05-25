@@ -10,6 +10,7 @@ from starlette.responses import Response
 from .api.router import api_router
 from .core.config import settings
 from .db.base import Base
+from .db.migrations import run_product_migrations
 from .db.session import SessionLocal, engine
 from sqlalchemy import inspect
 from . import crud
@@ -120,6 +121,7 @@ def on_startup() -> None:
             tables = inspector.get_table_names()
 
         Base.metadata.create_all(bind=engine)
+        run_product_migrations(engine)
         with engine.connect() as conn:
             inspector = inspect(conn)
             tables = inspector.get_table_names()
