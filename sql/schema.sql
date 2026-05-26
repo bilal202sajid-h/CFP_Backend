@@ -70,6 +70,20 @@ create index if not exists idx_products_article_number on products(article_numbe
 create index if not exists idx_products_featured on products(featured);
 create index if not exists idx_products_collection_id on products(collection_id);
 create index if not exists idx_products_is_admin_uploaded on products(is_admin_uploaded);
+
+create table if not exists product_images (
+  id bigint generated always as identity primary key,
+  product_id bigint not null references products(id) on delete cascade,
+  image_url text not null,
+  public_id text,
+  label text,
+  sort_order integer not null default 0,
+  is_cover boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_product_images_product_id on product_images(product_id);
+create index if not exists idx_product_images_is_cover on product_images(is_cover);
 create index if not exists idx_collections_sort_order on collections(sort_order);
 create index if not exists idx_categories_sort_order on categories(sort_order);
 create index if not exists idx_categories_name on categories(name);

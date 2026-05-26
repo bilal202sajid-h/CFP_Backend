@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+from .product_image import ProductImageInput, ProductImageRead
 
 
 class ProductBase(BaseModel):
@@ -21,7 +23,7 @@ class ProductBase(BaseModel):
 
 
 class ProductCreate(ProductBase):
-    pass
+    images: list[ProductImageInput] = Field(default_factory=list)
 
 
 class ProductUpdate(BaseModel):
@@ -39,12 +41,17 @@ class ProductUpdate(BaseModel):
     material: str | None = None
     dimensions: str | None = None
     stock: int | None = None
+    images: list[ProductImageInput] | None = None
 
 
-class ProductRead(ProductBase):
+class ProductListRead(ProductBase):
     id: int
     is_admin_uploaded: bool = False
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProductRead(ProductListRead):
+    images: list[ProductImageRead] = Field(default_factory=list)

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/products", response_model=list[schemas.ProductRead])
+@router.get("/products", response_model=list[schemas.ProductListRead])
 def public_products(category: str | None = None, featured: bool | None = None, db: Session = Depends(get_db)):
     logger.info("public_products_start category=%s featured=%s", category, featured)
     products = crud.list_products(db, category=category, featured=featured)
@@ -22,6 +22,6 @@ def public_products(category: str | None = None, featured: bool | None = None, d
 @router.get("/products/{product_id}", response_model=schemas.ProductRead)
 def public_product_detail(product_id: int, db: Session = Depends(get_db)):
     logger.info("public_product_detail_start product_id=%s", product_id)
-    product = crud.get_product(db, product_id)
+    product = crud.get_product(db, product_id, load_images=True)
     logger.info("public_product_detail_end product_id=%s found=true", product_id)
     return product

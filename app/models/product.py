@@ -27,3 +27,9 @@ class Product(Base):
     is_admin_uploaded = Column(Boolean, nullable=False, default=False, index=True)
 
     collection = relationship("Collection", back_populates="products")
+    images = relationship(
+        "ProductImage",
+        back_populates="product",
+        cascade="all, delete-orphan",
+        order_by="ProductImage.sort_order",
+    )

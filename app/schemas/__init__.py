@@ -1,6 +1,7 @@
 from .auth import AdminLoginRequest, AdminPublic, TokenResponse
 from .collection import CollectionBase, CollectionCreate, CollectionRead, CollectionUpdate
-from .product import ProductBase, ProductCreate, ProductRead, ProductUpdate
+from .product import ProductBase, ProductCreate, ProductListRead, ProductRead, ProductUpdate
+from .product_image import ProductImageInput, ProductImageRead
 from .upload import ImageUploadResponse
 from .category import CategoryBase, CategoryCreate, CategoryRead, CategoryUpdate
 from .frontend_config import FrontendConfigBase, FrontendConfigCreate, FrontendConfigRead, FrontendConfigUpdate

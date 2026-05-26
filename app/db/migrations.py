@@ -53,3 +53,51 @@ def run_product_migrations(engine: Engine) -> None:
             conn.execute(text(statement))
 
     logger.info("product_migrations_complete")
+
+
+PRODUCT_IMAGES_TABLE = """
+CREATE TABLE IF NOT EXISTS product_images (
+  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  product_id bigint NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  image_url text NOT NULL,
+  public_id text,
+  label text,
+  sort_order integer NOT NULL DEFAULT 0,
+  is_cover boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+)
+"""
+
+PRODUCT_IMAGES_INDEXES = [
+    "CREATE INDEX IF NOT EXISTS idx_product_images_product_id ON product_images(product_id)",
+    "CREATE INDEX IF NOT EXISTS idx_product_images_is_cover ON product_images(is_cover)",
+]
+
+
+def run_product_image_migrations(engine: Engine) -> None:
+    inspector = inspect(engine)
+    if "products" not in inspector.get_table_names():
+        logger.info("product_image_migrations_skipped reason=products_table_missing")
+        return
+
+    with engine.begin() as conn:
+        conn.execute(text(PRODUCT_IMAGES_TABLE))
+        for statement in PRODUCT_IMAGES_INDEXES:
+            conn.execute(text(statement))
+
+        conn.execute(
+            text(
+                """
+                INSERT INTO product_images (product_id, image_url, sort_order, is_cover)
+                SELECT p.id, p.image_url, 0, true
+                FROM products p
+                WHERE p.image_url IS NOT NULL
+                  AND p.image_url <> ''
+                  AND NOT EXISTS (
+                    SELECT 1 FROM product_images pi WHERE pi.product_id = p.id
+                  )
+                """
+            )
+        )
+
+    logger.info("product_image_migrations_complete")
